@@ -1,21 +1,27 @@
 #!/usr/bin/env node
 
-var program = require('commander');
-var cheerio = require('cheerio');
-var restler = require('restler');
-var fs = require('fs');
+var program      = require('commander');
+var cheerio      = require('cheerio');
+var restler      = require('restler');
+var fs           = require('fs');
+var eventEmitter = require('events').EventEmitter,
+    emitter      = new eventEmitter();
 
-var OUT_FILE = 'contacts.log';
+var OUT_FILE     = 'contacts.log';
+var QUEUED_EVENT = 'queued';
 
 var logToFile = function(contact, outFile){
     fs.appendFileSync(outFile, contact + '\n');
 };
 
+var parserIsBusy = false;
+var listenersCount = 0;
+
 var getMailId = function(url, outFile){
-    console.log('==>Called for url: ' + url);
+    parserIsBusy = true;
     if(url === null) return;
 
-    restler.get(url).on('complete', function(result){
+    restler.get(url).once('complete', function(result){
         if(result instanceof Error){
             console.log('%s is not accessible. \n Exiting.', url);
             process.exit(1);
@@ -27,21 +33,30 @@ var getMailId = function(url, outFile){
             mailId = mailToLink.split(':')[1].split('?')[0];
             logToFile(mailId, outFile);
         } 
-        catch (e){
-            console.log('***********');
-            console.log('Failed parsing href: ' + mailToLink);
-            console.log('***********');
+        catch (e){ //No replyTo link found
+        }
+        finally{
+            parserIsBusy = false;
+            emitter.emit(QUEUED_EVENT);
         }
     });
 };
 
-var getAllMailIds = function(urls, outFile){
-   // urls = JSON.parse(urlsJson);
-    for(var i in urls)
-    {
-        getMailId(urls[i], outFile);
+var popQ = function(){
+    if(urlQ.length > 0 && !parserIsBusy){
+        var url = urlQ.shift();
+        getMailId(url, OUT_FILE);
     }
 };
+
+var urlQ = [];
+
+var parsePost = function(url, outFile){
+    urlQ.push(url);
+    emitter.emit(QUEUED_EVENT);
+};
+
+emitter.on(QUEUED_EVENT, popQ);
 
 if(require.main == module){
     program
@@ -57,6 +72,5 @@ if(require.main == module){
 
    getMailId(program.postUrl, program.out);
 } else {
-    exports.getMailId = getMailId;
-    exports.getAllMailIds = getAllMailIds;
+    exports.parsePost = parsePost;
 }
