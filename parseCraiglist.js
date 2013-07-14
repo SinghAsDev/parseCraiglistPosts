@@ -10,7 +10,7 @@ var TAG_DEFAULT            = '.row a';
 var ATTR_DEFAULT           = 'href';
 var CREATE_URL_FROM_PARENT = true;
 var OUT_FILE               = 'contacts.log';
-var URL_DEFAULT            = 'http://houston.craigslist.org/search/sss?query=moving&zoomToPosting=&srchType=A&minAsk=&maxAsk=';
+var URL_DEFAULT            = 'http://houston.craigslist.org/search/sss?s=200&query=moving&srchType=A';
 
 var cheerioHtmlFile = function(htmlFile){
     return cheerio.load(fs.readFileSync(htmlFile));

@@ -15,7 +15,6 @@ var logToFile = function(contact, outFile){
 };
 
 var parserIsBusy = false;
-var listenersCount = 0;
 
 var getMailId = function(url, outFile){
     parserIsBusy = true;
